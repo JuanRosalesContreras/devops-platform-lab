@@ -28,7 +28,7 @@ jobs:
         run: python -m pytest -W error -q
 
   docker-build:
-    name: Docker Build
+    name: Docker Build & Smoke Test
     runs-on: ubuntu-latest
 
     steps:
@@ -43,3 +43,48 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t devops-platform-lab:ci .
+
+      - name: Run Docker container
+        run: |
+          docker run -d \
+            --name devops-platform-api-ci \
+            -p 8000:8000 \
+            -e APP_ENV=ci \
+            -e APP_VERSION=${{ github.sha }} \
+            devops-platform-lab:ci
+
+      - name: Wait for container health
+        run: |
+          for attempt in {1..12}; do
+            status="$(docker inspect --format='{{.State.Health.Status}}' devops-platform-api-ci)"
+            echo "Attempt ${attempt}: health=${status}"
+
+            if [ "${status}" = "healthy" ]; then
+              exit 0
+            fi
+
+            if [ "${status}" = "unhealthy" ]; then
+              docker logs devops-platform-api-ci
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          echo "Container did not become healthy in time."
+          docker logs devops-platform-api-ci
+          exit 1
+
+      - name: Validate health endpoint
+        run: |
+          response="$(curl --fail --silent http://127.0.0.1:8000/health)"
+          echo "Response: ${response}"
+          test "${response}" = '{"status":"healthy"}'
+
+      - name: Show container logs
+        if: always()
+        run: docker logs devops-platform-api-ci || true
+
+      - name: Remove Docker container
+        if: always()
+        run: docker rm -f devops-platform-api-ci || true
