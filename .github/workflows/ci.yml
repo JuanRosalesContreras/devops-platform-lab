@@ -26,3 +26,20 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -W error -q
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show Docker version
+        run: docker version
+
+      - name: Validate Dockerfile
+        run: docker build --check .
+
+      - name: Build Docker image
+        run: docker build -t devops-platform-lab:ci .
