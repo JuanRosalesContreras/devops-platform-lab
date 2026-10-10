@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-platform-api
+spec:
+  replicas: 2
+
+  template:
+    spec:
+      containers:
+        - name: api
+          env:
+            - name: APP_ENV
+              value: prod
