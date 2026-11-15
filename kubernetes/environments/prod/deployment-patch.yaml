@@ -7,6 +7,17 @@ spec:
 
   template:
     spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          nodeTaintsPolicy: Honor
+          labelSelector:
+            matchLabels:
+              app: devops-platform-api
+          matchLabelKeys:
+            - pod-template-hash
+
       containers:
         - name: api
           env:
